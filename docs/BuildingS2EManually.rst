@@ -39,8 +39,8 @@ Please refer to that Makefile for more details.
    $ mv clang-3.0.src llvm-3.0.src/tools/clang
 
    $ #First, build LLVM and clang with the system's compiler
-   $ mkdir $S2EBUILD/llvm-native
-   $ cd $S2EBUILD/llvm-native
+   $ mkdir $S2EBUILD/llvm-3.0-native
+   $ cd $S2EBUILD/llvm-3.0-native
    $ ../llvm-3.0.src/configure \
        --prefix=$S2EBUILD/opt \
        --enable-optimized --target=x86_64 --enable-targets=x86 --enable-jit
@@ -49,23 +49,22 @@ Please refer to that Makefile for more details.
    $ # Note that it is not necessary to have a debug version of it.
    $ make ENABLE_OPTIMIZED=1 -j4
 
+   $ # We will refer to these two variables when building the rest of S2E
+   $ export CLANG_CXX=${S2EBUILD}/llvm-3.0-native/Release+Asserts/bin/clang++
+   $ export CLANG_CC=${S2EBUILD}/llvm-3.0-native/Release+Asserts/bin/clang
+
    $ # Second, build again but this time with clang.
    $ # This is the compiled LLVM version that will be used by S2E
-   $ mkdir $S2EBUILD/llvm
-   $ cd $S2EBUILD/llvm
+   $ mkdir $S2EBUILD/llvm-3.0
+   $ cd $S2EBUILD/llvm-3.0
    $ ../llvm-3.0.src/configure \
        --prefix=$S2EBUILD/opt \
        --enable-optimized --enable-assertions \
        --target=x86_64 --enable-targets=x86 --enable-jit \
-       CC=$(S2EBUILD)/llvm-native/Release/bin/clang \
-       CXX=$(S2EBUILD)/llvm-native/Release/bin/clang++
+       CC=$CLANG_CC CXX=$CLANG_CXX
 
    $ make ENABLE_OPTIMIZED=1 -j4
    $ make ENABLE_OPTIMIZED=0 -j4
-
-   $ # We will refer to these two variables when building the rest of S2E
-   $ export CLANG_CXX=$(S2EBUILD)/llvm-native/Release/bin/clang++
-   $ export CLANG_CC=$(S2EBUILD)/llvm-native/Release/bin/clang
 
 
 Building STP
@@ -77,7 +76,7 @@ STP source into another directory before building::
    $ cd $S2EBUILD
    $ cp -R $S2ESRC/stp stp
    $ cd stp
-   $ bash scripts/configure --with-prefix=$(S2EBUILD)/stp --with-fpic --with-g++=$(CLANG_CXX) --with-gcc=$(CLANG_CC)
+   $ bash scripts/configure --with-prefix=$S2EBUILD/stp --with-fpic --with-g++=$CLANG_CXX --with-gcc=$CLANG_CC
    $ make -j4
    $ cp src/c_interface/c_interface.h include/stp
 
@@ -93,14 +92,13 @@ Building KLEE
    $ mkdir $S2EBUILD/klee
    $ cd $S2EBUILD/klee
    $ $S2ESRC/klee/configure \
-       --prefix=$(S2EBUILD)/opt \
-       --with-llvmsrc=$(S2EBUILD)/llvm-3.0.src \
-       --with-llvmobj=$(S2EBUILD)/llvm \
+       --prefix=$S2EBUILD/opt \
+       --with-llvmsrc=$S2EBUILD/llvm-3.0.src \
+       --with-llvmobj=$S2EBUILD/llvm-3.0 \
        --with-stp=$(S2EBUILD)/stp \
        --target=x86_64 \
        --enable-exceptions --enable-assertions \
-       CC=$(S2EBUILD)/llvm-native/Release/bin/clang \
-       CXX=$(S2EBUILD)/llvm-native/Release/bin/clang++
+       CC=$CLANG_CC CXX=$CLANG_CXX
 
    $ # Compile Release and Debug versions (you can have the both at the same time)
    $ make ENABLE_OPTIMIZED=1 -j4
@@ -119,11 +117,11 @@ S2E is based on QEMU and therefore inherits most of its configuration parameters
    $ mkdir $S2EBUILD/qemu-release
    $ cd $S2EBUILD/qemu-release
    $ $S2ESRC/qemu/configure \
-       --prefix=$(S2EBUILD)/opt \
-       --with-llvm=$(S2EBUILD)/llvm/Release+Asserts  \
-       --with-clang=$(S2EBUILD)/llvm-native/Release/bin/clang \
-       --with-stp=$(S2EBUILD)/stp \
-       --with-klee=$(S2EBUILD)/klee/Release+Asserts \
+       --prefix=$S2EBUILD/opt \
+       --with-llvm=$S2EBUILD/llvm-3.0/Release+Asserts  \
+       --with-clang=$CLANG_CC \
+       --with-stp=$S2EBUILD/stp \
+       --with-klee=$S2EBUILD/klee/Release+Asserts \
        --target-list=i386-s2e-softmmu,i386-softmmu \
        --enable-llvm \
        --enable-s2e --compile-all-with-clang
@@ -144,11 +142,11 @@ For debug mode, proceed as follows.
    $ mkdir $S2EBUILD/qemu-debug
    $ cd $S2EBUILD/qemu-debug
    $ $S2ESRC/qemu/configure \
-       --prefix=$(S2EBUILD)/opt \
-       --with-llvm=$(S2EBUILD)/llvm/Debug+Asserts  \
-       --with-clang=$(S2EBUILD)/llvm-native/Release/bin/clang \
-       --with-stp=$(S2EBUILD)/stp \
-       --with-klee=$(S2EBUILD)/klee/Debug+Asserts \
+       --prefix=$S2EBUILD/opt \
+       --with-llvm=$S2EBUILD/llvm-3.0/Debug+Asserts  \
+       --with-clang=$CLANG_CC \
+       --with-stp=$S2EBUILD/stp \
+       --with-klee=$S2EBUILD/klee/Debug+Asserts \
        --target-list=i386-s2e-softmmu,i386-softmmu \
        --enable-llvm \
        --enable-s2e --compile-all-with-clang
@@ -166,12 +164,11 @@ Building S2E Tools
 
    $ cd $S2EBUILD/tools
    $ $S2ESRC/tools/configure \
-       --with-llvmsrc=$(S2EBUILD)/$(LLVM_SRC_DIR) \
-       --with-llvmobj=$(S2EBUILD)/llvm \
-       --with-s2esrc=$(S2ESRC)/qemu \
+       --with-llvmsrc=$S2EBUILD/llvm-3.0.src \
+       --with-llvmobj=$S2EBUILD/llvm-3.0 \
+       --with-s2esrc=$S2ESRC/qemu \
        --target=x86_64 --enable-assertions \
-       CC=$(S2EBUILD)/llvm-native/Release/bin/clang \
-       CXX=$(S2EBUILD)/llvm-native/Release/bin/clang++
+       CC=$CLANG_CC CXX=$CLANG_CXX
 
    $ make -j4
 
