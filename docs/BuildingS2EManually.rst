@@ -50,8 +50,8 @@ Please refer to that Makefile for more details.
    $ make ENABLE_OPTIMIZED=1 -j4
 
    $ # We will refer to these two variables when building the rest of S2E
-   $ export CLANG_CXX=${S2EBUILD}/llvm-3.0-native/Release+Asserts/bin/clang++
-   $ export CLANG_CC=${S2EBUILD}/llvm-3.0-native/Release+Asserts/bin/clang
+   $ export CLANG_CXX=${S2EBUILD}/llvm-3.0-native/Release/bin/clang++
+   $ export CLANG_CC=${S2EBUILD}/llvm-3.0-native/Release/bin/clang
 
    $ # Second, build again but this time with clang.
    $ # This is the compiled LLVM version that will be used by S2E
